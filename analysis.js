@@ -47,7 +47,47 @@ function calculateKD(highs, lows, closes, period = 9) {
 }
 
 /**
- * 獲取股票歷史數據 (使用 Yahoo Finance API + CORS 代理)
+ * 延遲函數（用於重試機制）
+ */
+function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
+ * 重試機制包裝函數
+ * @param {Function} fn - 要執行的異步函數
+ * @param {number} maxRetries - 最大重試次數（預設 5 次）
+ * @param {number} delayMs - 重試間隔時間（預設 5000 毫秒）
+ * @param {string} stockCode - 股票代號（用於日誌）
+ */
+async function retryWithDelay(fn, maxRetries = 5, delayMs = 5000, stockCode = '') {
+    let lastError;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            console.log(`[${stockCode}] 嘗試第 ${attempt}/${maxRetries} 次...`);
+            const result = await fn();
+            console.log(`[${stockCode}] ✅ 成功獲取數據`);
+            return result;
+        } catch (error) {
+            lastError = error;
+            console.warn(`[${stockCode}] ❌ 第 ${attempt} 次嘗試失敗:`, error.message);
+
+            // 如果還有重試機會，等待後重試
+            if (attempt < maxRetries) {
+                console.log(`[${stockCode}] ⏳ 等待 ${delayMs / 1000} 秒後重試...`);
+                await delay(delayMs);
+            }
+        }
+    }
+
+    // 所有重試都失敗
+    console.error(`[${stockCode}] ❌ 已嘗試 ${maxRetries} 次，全部失敗`);
+    throw lastError;
+}
+
+/**
+ * 獲取股票歷史數據 (使用 Yahoo Finance API + CORS 代理 + 重試機制)
  */
 async function fetchStockData(stockCode) {
     // CORS 代理列表（按優先順序）
@@ -156,8 +196,13 @@ async function fetchStockData(stockCode) {
  */
 async function analyzeStock(stockCode) {
     try {
-        // 獲取歷史數據
-        const stockData = await fetchStockData(stockCode);
+        // 獲取歷史數據（使用重試機制）
+        const stockData = await retryWithDelay(
+            () => fetchStockData(stockCode),
+            5,      // 最多重試 5 次
+            5000,   // 每次間隔 5 秒
+            stockCode
+        );
 
         if (!stockData.closes || stockData.closes.length < 144) {
             throw new Error('數據不足，無法計算指標');
