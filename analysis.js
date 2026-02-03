@@ -87,9 +87,9 @@ async function retryWithDelay(fn, maxRetries = 5, delayMs = 5000, stockCode = ''
 }
 
 /**
- * 獲取股票歷史數據 (使用 Yahoo Finance API + CORS 代理 + 重試機制)
+ * 獲取股票歷史數據的核心邏輯（內部函數，不直接調用）
  */
-async function fetchStockData(stockCode) {
+async function fetchStockDataCore(stockCode) {
     // CORS 代理列表（按優先順序）
     const corsProxies = [
         'https://api.allorigins.win/raw?url=',
@@ -98,15 +98,48 @@ async function fetchStockData(stockCode) {
         '' // 最後嘗試直接訪問
     ];
 
-    try {
-        // 嘗試 .TW (上市)
-        let ticker = `${stockCode}.TW`;
-        let baseUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=1y`;
+    // 嘗試 .TW (上市)
+    let ticker = `${stockCode}.TW`;
+    let baseUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=1y`;
 
-        let data = null;
-        let lastError = null;
+    let data = null;
+    let lastError = null;
 
-        // 嘗試所有代理
+    // 嘗試所有代理
+    for (const proxy of corsProxies) {
+        try {
+            const url = proxy ? `${proxy}${encodeURIComponent(baseUrl)}` : baseUrl;
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            const text = await response.text();
+            data = JSON.parse(text);
+
+            // 檢查數據有效性
+            if (data.chart && data.chart.result && data.chart.result[0] &&
+                data.chart.result[0].indicators.quote[0].close.length > 0) {
+                break; // 成功獲取數據
+            }
+        } catch (error) {
+            lastError = error;
+            console.warn(`代理 ${proxy || '直接訪問'} 失敗:`, error.message);
+            continue; // 嘗試下一個代理
+        }
+    }
+
+    // 如果 .TW 沒有數據，嘗試 .TWO (上櫃)
+    if (!data || !data.chart.result || data.chart.result[0].indicators.quote[0].close.length === 0) {
+        ticker = `${stockCode}.TWO`;
+        baseUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=1y`;
+
         for (const proxy of corsProxies) {
             try {
                 const url = proxy ? `${proxy}${encodeURIComponent(baseUrl)}` : baseUrl;
@@ -124,70 +157,50 @@ async function fetchStockData(stockCode) {
                 const text = await response.text();
                 data = JSON.parse(text);
 
-                // 檢查數據有效性
                 if (data.chart && data.chart.result && data.chart.result[0] &&
                     data.chart.result[0].indicators.quote[0].close.length > 0) {
-                    break; // 成功獲取數據
+                    break;
                 }
             } catch (error) {
                 lastError = error;
                 console.warn(`代理 ${proxy || '直接訪問'} 失敗:`, error.message);
-                continue; // 嘗試下一個代理
+                continue;
             }
         }
+    }
 
-        // 如果 .TW 沒有數據，嘗試 .TWO (上櫃)
-        if (!data || !data.chart.result || data.chart.result[0].indicators.quote[0].close.length === 0) {
-            ticker = `${stockCode}.TWO`;
-            baseUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d&range=1y`;
+    if (!data || !data.chart.result || data.chart.result[0].indicators.quote[0].close.length === 0) {
+        throw new Error('找不到股票數據，請檢查股票代號是否正確');
+    }
 
-            for (const proxy of corsProxies) {
-                try {
-                    const url = proxy ? `${proxy}${encodeURIComponent(baseUrl)}` : baseUrl;
-                    const response = await fetch(url, {
-                        method: 'GET',
-                        headers: {
-                            'Accept': 'application/json'
-                        }
-                    });
+    const result = data.chart.result[0];
+    const quote = result.indicators.quote[0];
 
-                    if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}`);
-                    }
+    return {
+        timestamps: result.timestamp,
+        opens: quote.open,
+        highs: quote.high,
+        lows: quote.low,
+        closes: quote.close,
+        volumes: quote.volume
+    };
+}
 
-                    const text = await response.text();
-                    data = JSON.parse(text);
-
-                    if (data.chart && data.chart.result && data.chart.result[0] &&
-                        data.chart.result[0].indicators.quote[0].close.length > 0) {
-                        break;
-                    }
-                } catch (error) {
-                    lastError = error;
-                    console.warn(`代理 ${proxy || '直接訪問'} 失敗:`, error.message);
-                    continue;
-                }
-            }
-        }
-
-        if (!data || !data.chart.result || data.chart.result[0].indicators.quote[0].close.length === 0) {
-            throw new Error('找不到股票數據，請檢查股票代號是否正確');
-        }
-
-        const result = data.chart.result[0];
-        const quote = result.indicators.quote[0];
-
-        return {
-            timestamps: result.timestamp,
-            opens: quote.open,
-            highs: quote.high,
-            lows: quote.low,
-            closes: quote.close,
-            volumes: quote.volume
-        };
+/**
+ * 獲取股票歷史數據 (使用 Yahoo Finance API + CORS 代理 + 重試機制)
+ */
+async function fetchStockData(stockCode) {
+    try {
+        // 使用重試機制包裝核心函數
+        return await retryWithDelay(
+            () => fetchStockDataCore(stockCode),
+            5,      // 最多重試 5 次
+            5000,   // 每次間隔 5 秒
+            stockCode
+        );
     } catch (error) {
-        console.error('獲取股票數據失敗:', error);
-        throw new Error(`Failed to fetch: 無法連接到股票數據服務，請稍後再試`);
+        console.error(`[${stockCode}] 最終失敗:`, error);
+        throw new Error(`無法連接到股票數據服務，請稍後再試 (${error.message})`);
     }
 }
 
@@ -196,13 +209,8 @@ async function fetchStockData(stockCode) {
  */
 async function analyzeStock(stockCode) {
     try {
-        // 獲取歷史數據（使用重試機制）
-        const stockData = await retryWithDelay(
-            () => fetchStockData(stockCode),
-            5,      // 最多重試 5 次
-            5000,   // 每次間隔 5 秒
-            stockCode
-        );
+        // 獲取歷史數據（fetchStockData 內部已包含重試機制）
+        const stockData = await fetchStockData(stockCode);
 
         if (!stockData.closes || stockData.closes.length < 144) {
             throw new Error('數據不足，無法計算指標');
