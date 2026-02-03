@@ -415,10 +415,12 @@ function analyzeStrategy(analysis, highs, closes) {
 
 /**
  * 批量分析股票 (用於板塊分析)
+ * 添加請求間延遲以避免 API 限流
  */
 async function analyzeSector(stockCodes, onProgress) {
     const results = [];
     const total = stockCodes.length;
+    const DELAY_BETWEEN_REQUESTS = 1000; // 每個請求間隔 1 秒
 
     for (let i = 0; i < stockCodes.length; i++) {
         try {
@@ -427,6 +429,11 @@ async function analyzeSector(stockCodes, onProgress) {
 
             if (onProgress) {
                 onProgress(i + 1, total);
+            }
+
+            // 在請求之間添加延遲（除了最後一個）
+            if (i < stockCodes.length - 1) {
+                await delay(DELAY_BETWEEN_REQUESTS);
             }
         } catch (error) {
             console.error(`分析 ${stockCodes[i]} 失敗:`, error);
@@ -439,6 +446,7 @@ async function analyzeSector(stockCodes, onProgress) {
 
 /**
  * 掃描潛力股
+ * 添加請求間延遲以避免 API 限流
  */
 async function scanUndervaluedStocks(onProgress) {
     const allStocks = Object.keys(STOCK_NAMES);
@@ -500,6 +508,11 @@ async function scanUndervaluedStocks(onProgress) {
 
             if (onProgress) {
                 onProgress(i + 1, total);
+            }
+
+            // 在請求之間添加延遲（除了最後一個）
+            if (i < allStocks.length - 1) {
+                await delay(1000); // 每個請求間隔 1 秒
             }
         } catch (error) {
             console.error(`掃描 ${allStocks[i]} 失敗:`, error);
