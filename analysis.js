@@ -1,5 +1,11 @@
 // 股票分析核心邏輯
 
+// ==================== 後端 API 配置 ====================
+const USE_BACKEND_API = true; // 設為 true 使用後端 API，false 使用 CORS 代理
+const BACKEND_API_URL = 'https://tw-stock-api.vercel.app'; // 您的後端 API 網址
+// ======================================================
+
+
 /**
  * 計算簡單移動平均線 (SMA)
  */
@@ -90,6 +96,46 @@ async function retryWithDelay(fn, maxRetries = 5, delayMs = 5000, stockCode = ''
  * 獲取股票歷史數據的核心邏輯（內部函數，不直接調用）
  */
 async function fetchStockDataCore(stockCode) {
+    // 如果啟用後端 API，優先使用後端
+    if (USE_BACKEND_API) {
+        try {
+            console.log(`[${stockCode}] 🚀 使用後端 API...`);
+            const url = `${BACKEND_API_URL}/api/stock/${stockCode}`;
+            const response = await fetch(url);
+
+            if (!response.ok) {
+                throw new Error(`後端 API HTTP ${response.status}`);
+            }
+
+            const result = await response.json();
+
+            if (!result.success) {
+                throw new Error(result.error || '後端 API 返回錯誤');
+            }
+
+            const data = result.data;
+            const chartResult = data.chart.result[0];
+            const quote = chartResult.indicators.quote[0];
+
+            console.log(`[${stockCode}] ✅ 後端 API 成功${result.cached ? '（快取）' : ''}`);
+
+            return {
+                timestamps: chartResult.timestamp,
+                opens: quote.open,
+                highs: quote.high,
+                lows: quote.low,
+                closes: quote.close,
+                volumes: quote.volume
+            };
+        } catch (error) {
+            console.warn(`[${stockCode}] ⚠️ 後端 API 失敗，切換到 CORS 代理:`, error.message);
+            // 繼續使用 CORS 代理作為備用方案
+        }
+    }
+
+    // 備用方案：使用 CORS 代理
+    console.log(`[${stockCode}] 🔄 使用 CORS 代理...`);
+
     // CORS 代理列表（按優先順序）
     const corsProxies = [
         'https://api.allorigins.win/raw?url=',
