@@ -14,23 +14,54 @@ const singleStockResult = document.getElementById('singleStockResult');
 const multiStockResult = document.getElementById('multiStockResult');
 const errorMessage = document.getElementById('errorMessage');
 
+// Custom Sector DOM 元素
+const addCustomSectorBtn = document.getElementById('addCustomSectorBtn');
+const manageSectorsBtn = document.getElementById('manageSectorsBtn');
+const customSectorModal = document.getElementById('customSectorModal');
+const closeCustomSectorModal = document.getElementById('closeCustomSectorModal');
+const manageSectorsModal = document.getElementById('manageSectorsModal');
+const closeManageSectorsModal = document.getElementById('closeManageSectorsModal');
+const sectorName = document.getElementById('sectorName');
+const sectorStocks = document.getElementById('sectorStocks');
+const stockValidation = document.getElementById('stockValidation');
+const saveCustomSector = document.getElementById('saveCustomSector');
+const cancelCustomSector = document.getElementById('cancelCustomSector');
+const customSectorsList = document.getElementById('customSectorsList');
+const exportSectorsBtn = document.getElementById('exportSectorsBtn');
+const importSectorsFile = document.getElementById('importSectorsFile');
+
+// 當前編輯的板塊 ID
+let currentEditingSectorId = null;
+
 // 初始化
 document.addEventListener('DOMContentLoaded', () => {
     initializeSectorGrid();
     setupEventListeners();
+    setupCustomSectorListeners();
 });
 
 /**
  * 初始化板塊選擇網格
  */
 function initializeSectorGrid() {
-    const sectors = getSectorList();
+    const sectors = getAllSectors();
     sectorGrid.innerHTML = '';
 
     sectors.forEach(sector => {
         const btn = document.createElement('button');
         btn.className = 'sector-btn';
-        btn.textContent = sector.name;
+
+        // 添加板塊名稱
+        const nameSpan = document.createElement('span');
+        nameSpan.textContent = sector.name;
+        btn.appendChild(nameSpan);
+
+        // 添加標籤
+        const badge = document.createElement('span');
+        badge.className = `sector-badge ${sector.isCustom ? 'custom' : 'default'}`;
+        badge.textContent = sector.isCustom ? '自訂' : '預設';
+        btn.appendChild(badge);
+
         btn.onclick = () => handleSectorSelect(sector.id);
         sectorGrid.appendChild(btn);
     });
@@ -102,8 +133,10 @@ async function handleSearch() {
 async function handleSectorSelect(sectorId) {
     sectorModal.classList.remove('active');
 
-    const stocks = getSectorStocks(sectorId);
-    const sectorName = SECTORS[sectorId].name;
+    const stocks = getSectorStocksById(sectorId);
+    const allSectors = getAllSectors();
+    const sector = allSectors.find(s => s.id === sectorId);
+    const sectorName = sector ? sector.name : sectorId;
 
     hideError();
     showLoading();

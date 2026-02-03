@@ -49,11 +49,75 @@
                         <h2>選擇板塊</h2>
                         <button class="close-btn" id="closeSectorModal">&times;</button>
                     </div>
+
+                    <!-- Custom Sector Management -->
+                    <div class="custom-sector-controls">
+                        <button class="btn btn-secondary" id="addCustomSectorBtn">
+                            <span>➕ 新增自定義板塊</span>
+                        </button>
+                        <button class="btn btn-secondary" id="manageSectorsBtn">
+                            <span>⚙️ 管理板塊</span>
+                        </button>
+                    </div>
+
                     <div class="sector-grid" id="sectorGrid">
                         <!-- Sectors will be populated by JavaScript -->
                     </div>
                 </div>
             </div>
+
+            <!-- Add/Edit Custom Sector Modal -->
+            <div id="customSectorModal" class="modal">
+                <div class="modal-content card">
+                    <div class="modal-header">
+                        <h2 id="customSectorModalTitle">新增自定義板塊</h2>
+                        <button class="close-btn" id="closeCustomSectorModal">&times;</button>
+                    </div>
+                    <div class="custom-sector-form">
+                        <div class="form-group">
+                            <label for="sectorName">板塊名稱</label>
+                            <input type="text" id="sectorName" class="stock-input" placeholder="例如：我的自選股"
+                                maxlength="20">
+                        </div>
+                        <div class="form-group">
+                            <label for="sectorStocks">股票代號</label>
+                            <textarea id="sectorStocks" class="stock-textarea"
+                                placeholder="輸入股票代號，用逗號或空格分隔&#10;例如：2330, 2317, 2454" rows="5"></textarea>
+                            <div class="form-hint">💡 可輸入多個股票代號，用逗號或空格分隔</div>
+                        </div>
+                        <div id="stockValidation" class="validation-message" style="display: none;"></div>
+                        <div class="form-actions">
+                            <button class="btn btn-secondary" id="cancelCustomSector">取消</button>
+                            <button class="btn btn-primary" id="saveCustomSector">儲存</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Manage Sectors Modal -->
+            <div id="manageSectorsModal" class="modal">
+                <div class="modal-content card">
+                    <div class="modal-header">
+                        <h2>管理自定義板塊</h2>
+                        <button class="close-btn" id="closeManageSectorsModal">&times;</button>
+                    </div>
+                    <div class="manage-sectors-content">
+                        <div id="customSectorsList" class="custom-sectors-list">
+                            <!-- Custom sectors will be populated here -->
+                        </div>
+                        <div class="import-export-controls">
+                            <button class="btn btn-secondary" id="exportSectorsBtn">
+                                <span>📤 匯出板塊</span>
+                            </button>
+                            <label class="btn btn-secondary" for="importSectorsFile">
+                                <span>📥 匯入板塊</span>
+                            </label>
+                            <input type="file" id="importSectorsFile" accept=".json" style="display: none;">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
 
             <!-- Loading Indicator -->
             <div id="loadingIndicator" class="loading-container" style="display: none;">
@@ -126,8 +190,10 @@
     </div>
 
     <script src="stockData.js"></script>
+    <script src="customSectors.js"></script>
     <script src="analysis.js"></script>
     <script src="charts.js"></script>
+    <script src="customSectorHandlers.js"></script>
     <script src="app.js"></script>
 </body>
 
