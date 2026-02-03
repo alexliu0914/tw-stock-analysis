@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="台股分析工具 - 費波那契均線分析系統">
+    <title>台股分析工具 | Fibonacci MA</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-content">
+                <h1>📈 台股分析工具</h1>
+                <p class="subtitle">費波那契均線分析系統</p>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Search Section -->
+            <section class="search-section card">
+                <h2>🔍 股票查詢</h2>
+                <div class="search-container">
+                    <input type="text" id="stockInput" placeholder="輸入股票代號 (例: 2330)" class="stock-input">
+                    <button id="searchBtn" class="btn btn-primary">
+                        <span class="btn-text">分析</span>
+                        <span class="btn-icon">🔎</span>
+                    </button>
+                </div>
+                <div class="quick-actions">
+                    <button class="btn btn-secondary" id="sectorBtn">
+                        <span>📊 板塊分析</span>
+                    </button>
+                    <button class="btn btn-secondary" id="scanBtn">
+                        <span>🎯 掃描潛力股</span>
+                    </button>
+                </div>
+            </section>
+
+            <!-- Sector Selection Modal -->
+            <div id="sectorModal" class="modal">
+                <div class="modal-content card">
+                    <div class="modal-header">
+                        <h2>選擇板塊</h2>
+                        <button class="close-btn" id="closeSectorModal">&times;</button>
+                    </div>
+                    <div class="sector-grid" id="sectorGrid">
+                        <!-- Sectors will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loading Indicator -->
+            <div id="loadingIndicator" class="loading-container" style="display: none;">
+                <div class="spinner"></div>
+                <p>正在分析中...</p>
+            </div>
+
+            <!-- Results Section -->
+            <section id="resultsSection" class="results-section" style="display: none;">
+                <!-- Single Stock Result -->
+                <div id="singleStockResult" class="card stock-detail" style="display: none;">
+                    <div class="stock-header">
+                        <h2 id="stockTitle"></h2>
+                        <div class="stock-price" id="stockPrice"></div>
+                    </div>
+
+                    <div class="price-info" id="priceInfo">
+                        <!-- OHLC data -->
+                    </div>
+
+                    <div class="indicators-section">
+                        <h3>📊 技術指標</h3>
+                        <div class="ma-grid" id="maGrid">
+                            <!-- MA values -->
+                        </div>
+                        <div class="kd-values" id="kdValues">
+                            <!-- KD values -->
+                        </div>
+                    </div>
+
+                    <div class="analysis-section">
+                        <h3>💡 分析建議</h3>
+                        <div class="analysis-content" id="analysisContent">
+                            <!-- Analysis results -->
+                        </div>
+                    </div>
+
+                    <!-- Chart Section -->
+                    <div class="chart-section">
+                        <h3>📊 技術圖表</h3>
+                        <div class="chart-container">
+                            <canvas id="priceChart"></canvas>
+                        </div>
+                        <div class="chart-container" style="margin-top: 20px;">
+                            <canvas id="kdChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Multiple Stocks Result (Sector/Scan) -->
+                <div id="multiStockResult" class="card" style="display: none;">
+                    <h2 id="multiStockTitle"></h2>
+                    <div class="table-container">
+                        <table class="stock-table" id="stockTable">
+                            <!-- Table will be populated by JavaScript -->
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Error Message -->
+            <div id="errorMessage" class="error-message" style="display: none;"></div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="app-footer">
+            <p>⚠️ 本工具僅供參考，投資前請詳閱財報並做好風險控管</p>
+            <p class="footer-note">數據來源: Yahoo Finance API</p>
+        </footer>
+    </div>
+
+    <script src="stockData.js"></script>
+    <script src="analysis.js"></script>
+    <script src="charts.js"></script>
+    <script src="app.js"></script>
+</body>
+
+</html>

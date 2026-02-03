@@ -1,0 +1,45 @@
+# Python 相關
+*.py
+*.pyc
+__pycache__/
+*.zip
+
+# Firebase 相關（如果只用 GitHub Pages）
+.firebase/
+.firebaserc
+firebase.json
+deploy.ps1
+test-local.ps1
+部署.bat
+
+# 臨時檔案
+*.tmp
+*.log
+.DS_Store
+Thumbs.db
+
+# 編輯器
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# public 目錄（GitHub Pages 不需要）
+public/
+
+# 可選的文檔（保留核心文檔即可）
+完成項目總結.md
+專案完成報告.md
+當前狀態.md
+快速開始.md
+立即開始.md
+緊急修復.md
+部署成功.md
+部署指令.md
+部署準備完成.md
+手機使用指南.md
+CORS修復說明.md
+CORS_解決方案.md
+安裝Node.js和Firebase.md
+Firebase部署指南.md
+test_mobile.html
