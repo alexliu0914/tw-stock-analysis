@@ -194,11 +194,11 @@ function displaySingleStock(data) {
         </div>
         <div class="price-item">
             <div class="price-label">最高</div>
-            <div class="price-value" style="color: var(--success-color)">${data.high.toFixed(2)}</div>
+            <div class="price-value" style="color: var(--danger-color)">${data.high.toFixed(2)}</div>
         </div>
         <div class="price-item">
             <div class="price-label">最低</div>
-            <div class="price-value" style="color: var(--danger-color)">${data.low.toFixed(2)}</div>
+            <div class="price-value" style="color: var(--success-color)">${data.low.toFixed(2)}</div>
         </div>
         <div class="price-item">
             <div class="price-label">收盤</div>
@@ -235,8 +235,8 @@ function displaySingleStock(data) {
     `;
 
     // 設置 KD 資訊
-    const kColor = data.kd.k > data.kd.d ? 'var(--success-color)' : 'var(--danger-color)';
-    const dColor = data.kd.d > data.kd.k ? 'var(--success-color)' : 'var(--danger-color)';
+    const kColor = data.kd.k > data.kd.d ? 'var(--danger-color)' : 'var(--success-color)';
+    const dColor = data.kd.d > data.kd.k ? 'var(--danger-color)' : 'var(--success-color)';
 
     document.getElementById('kdValues').innerHTML = `
         <div class="kd-item">
@@ -400,6 +400,40 @@ function displaySingleStock(data) {
                 ">
                     💡 <strong>說明：</strong>AI 評分綜合考量 KD 指標、均線排列、價格位置、趨勢強度和進場機會等多個維度，提供客觀的技術面評估。評分僅供參考，投資前請做好風險控管。
                 </div>
+
+                <!-- 新增：歷史回測統計 -->
+                ${data.backtestResult ? `
+                <div style="
+                    margin-top: 15px;
+                    padding: 15px;
+                    background: rgba(16, 185, 129, 0.05);
+                    border: 1px dashed rgba(16, 185, 129, 0.3);
+                    border-radius: 8px;
+                ">
+                    <div style="font-size: 0.9em; font-weight: 600; color: var(--success-color); margin-bottom: 10px; display: flex; align-items: center; gap: 8px;">
+                        📊 歷史勝率分析 (過去 120 天數據)
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; text-align: center;">
+                        <div>
+                            <div style="font-size: 0.75em; color: var(--text-muted);">5天勝率</div>
+                            <div style="font-size: 1.1em; font-weight: bold; color: var(--text-primary);">${data.backtestResult.winRate5}%</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 0.75em; color: var(--text-muted);">10天勝率</div>
+                            <div style="font-size: 1.1em; font-weight: bold; color: var(--text-primary);">${data.backtestResult.winRate10}%</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 0.75em; color: var(--text-muted);">預期獲利</div>
+                            <div style="font-size: 1.1em; font-weight: bold; color: ${data.backtestResult.avgProfit10 > 0 ? 'var(--danger-color)' : 'var(--success-color)'};">
+                                ${data.backtestResult.avgProfit10 > 0 ? '+' : ''}${data.backtestResult.avgProfit10}%
+                            </div>
+                        </div>
+                    </div>
+                    <div style="font-size: 0.7em; color: var(--text-muted); margin-top: 10px; text-align: right;">
+                        * 樣本數: ${data.backtestResult.signalCount} 次歷史信號 (評分>=12)
+                    </div>
+                </div>
+                ` : ''}
             </div>
         `;
     }

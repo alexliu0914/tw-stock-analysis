@@ -93,6 +93,55 @@ async function retryWithDelay(fn, maxRetries = 5, delayMs = 5000, stockCode = ''
 }
 
 /**
+ * 本地快取管理員 (Local Caching)
+ */
+const CacheManager = {
+    PREFIX: 'tw_stock_cache_',
+    save(stockCode, data) {
+        try {
+            localStorage.setItem(this.PREFIX + stockCode, JSON.stringify({ timestamp: Date.now(), data: data }));
+        } catch (e) {
+            if (e.name === 'QuotaExceededError') {
+                this.clearAll();
+                try { localStorage.setItem(this.PREFIX + stockCode, JSON.stringify({ timestamp: Date.now(), data: data })); } catch (e2) { }
+            }
+        }
+    },
+    get(stockCode) {
+        const item = localStorage.getItem(this.PREFIX + stockCode);
+        if (!item) return null;
+        try {
+            const entry = JSON.parse(item);
+            if (this.isValid(entry.timestamp)) return entry.data;
+            localStorage.removeItem(this.PREFIX + stockCode);
+        } catch (e) { return null; }
+        return null;
+    },
+    isValid(timestamp) {
+        const now = new Date();
+        const cached = new Date(timestamp);
+        const today0900 = new Date(now); today0900.setHours(9, 0, 0, 0);
+        const today1400 = new Date(now); today1400.setHours(14, 0, 0, 0);
+        if (now >= today0900) {
+            if (cached < today0900) return false;
+            if (now < today1400) return (now - cached) < 60 * 60 * 1000;
+            return cached >= today1400;
+        } else {
+            const yesterday1400 = new Date(today1400); yesterday1400.setDate(yesterday1400.getDate() - 1);
+            return cached >= yesterday1400;
+        }
+    },
+    clearAll() {
+        const keys = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith(this.PREFIX)) keys.push(key);
+        }
+        keys.forEach(key => localStorage.removeItem(key));
+    }
+};
+
+/**
  * 獲取股票歷史數據的核心邏輯（內部函數，不直接調用）
  */
 async function fetchStockDataCore(stockCode) {
@@ -236,17 +285,18 @@ async function fetchStockDataCore(stockCode) {
 }
 
 /**
- * 獲取股票歷史數據 (使用 Yahoo Finance API + CORS 代理 + 重試機制)
+ * 獲取股票歷史數據 (優先使用快取)
  */
 async function fetchStockData(stockCode) {
+    const cachedData = CacheManager.get(stockCode);
+    if (cachedData) {
+        console.log(`[${stockCode}] ⚡ 使用本地快取數據`);
+        return cachedData;
+    }
     try {
-        // 使用重試機制包裝核心函數
-        return await retryWithDelay(
-            () => fetchStockDataCore(stockCode),
-            5,      // 最多重試 5 次
-            5000,   // 每次間隔 5 秒
-            stockCode
-        );
+        const data = await retryWithDelay(() => fetchStockDataCore(stockCode), 5, 5000, stockCode);
+        CacheManager.save(stockCode, data);
+        return data;
     } catch (error) {
         console.error(`[${stockCode}] 最終失敗:`, error);
         throw new Error(`無法連接到股票數據服務，請稍後再試 (${error.message})`);
@@ -357,10 +407,18 @@ async function analyzeStock(stockCode) {
             dValues: kd.d.slice(chartStartIndex)
         };
 
+        // ==================== AI 回測系統（新增） ====================
+        const backtestResult = runBacktest(
+            closes, highs, lows,
+            { ma5, ma13, ma21, ma34, ma55, ma144 },
+            kd
+        );
+
         return {
             ...analysis,
             ...strategy,
             ...aiScore,  // 加入 AI 評分
+            backtestResult, // 加入回測結果
             chartData
         };
 
@@ -596,7 +654,46 @@ function calculateAIScore(analysis, strategy) {
         aiStars: stars,
         aiRating: rating,
         aiRiskLevel: riskLevel,
-        aiReasons: reasons
+        aiReasons: reasons,
+        indicators: {
+            k: analysis.kd.k, d: analysis.kd.d,
+            maScore: maScore, isBull: strategy.isBullMarket
+        }
+    };
+}
+
+/**
+ * AI 歷史勝率回測
+ */
+function runBacktest(closes, highs, lows, maData, kdData) {
+    const signals = [];
+    const testPeriod = 120;
+    const signalThreshold = 12;
+    for (let i = Math.max(1, closes.length - testPeriod); i < closes.length - 10; i++) {
+        const mockAnalysis = {
+            price: closes[i],
+            ma: {
+                ma5: maData.ma5[i], ma13: maData.ma13[i], ma21: maData.ma21[i],
+                ma34: maData.ma34[i], ma55: maData.ma55[i], ma144: maData.ma144[i]
+            },
+            kd: { k: kdData.k[i], d: kdData.d[i] },
+            prevKD: { k: kdData.k[i - 1], d: kdData.d[i - 1] }
+        };
+        const mockStrategy = analyzeStrategy(mockAnalysis, highs.slice(0, i + 1), closes.slice(0, i + 1));
+        const aiResult = calculateAIScore(mockAnalysis, mockStrategy);
+        if (aiResult.aiScore >= signalThreshold) {
+            signals.push({ index: i, entryPrice: closes[i], price5: closes[i + 5], price10: closes[i + 10] });
+        }
+    }
+    if (signals.length === 0) return null;
+    const win5 = signals.filter(s => s.price5 > s.entryPrice).length;
+    const win10 = signals.filter(s => s.price10 > s.entryPrice).length;
+    const avgProfit = signals.reduce((acc, s) => acc + ((s.price10 - s.entryPrice) / s.entryPrice), 0) / signals.length;
+    return {
+        signalCount: signals.length,
+        winRate5: (win5 / signals.length * 100).toFixed(1),
+        winRate10: (win10 / signals.length * 100).toFixed(1),
+        avgProfit10: (avgProfit * 100).toFixed(1)
     };
 }
 

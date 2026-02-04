@@ -692,11 +692,13 @@ body {
 }
 
 .trend-bullish {
-    color: var(--success-color);
+    color: var(--danger-color);
+    /* 紅色 */
 }
 
 .trend-bearish {
-    color: var(--danger-color);
+    color: var(--success-color);
+    /* 綠色 */
 }
 
 .trend-neutral {
