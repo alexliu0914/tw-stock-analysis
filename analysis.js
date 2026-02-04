@@ -504,50 +504,114 @@ async function scanUndervaluedStocks(onProgress) {
             const stockCode = allStocks[i];
             const analysis = await analyzeStock(stockCode);
 
-            // 評分系統
+            // ==================== 增強版 AI 評分系統 ====================
             let score = 0;
             const reasons = [];
+            const maxScore = 20; // 總分 20 分
 
-            // 1. KD超賣
+            // === 1. KD 指標評分 (最高 5 分) ===
             if (analysis.kd.k < 20) {
                 score += 3;
-                reasons.push(`KD超賣(K=${analysis.kd.k.toFixed(1)})`);
+                reasons.push(`🔵 KD超賣區(K=${analysis.kd.k.toFixed(1)})`);
+            } else if (analysis.kd.k < 30) {
+                score += 2;
+                reasons.push(`🔵 KD偏低(K=${analysis.kd.k.toFixed(1)})`);
             }
 
-            // 2. 跌破均線
-            if (analysis.price < analysis.ma.ma5) {
+            // KD 黃金交叉
+            if (analysis.kdTrend.includes("黃金交叉")) {
                 score += 2;
-                reasons.push("價跌破MA5");
+                reasons.push("⭐ KD黃金交叉");
             }
-            if (analysis.price < analysis.ma.ma13) {
-                score += 2;
-                reasons.push("價跌破MA13");
+
+            // === 2. 均線排列評分 (最高 5 分) ===
+            let maScore = 0;
+            if (analysis.ma.ma5 > analysis.ma.ma13) maScore++;
+            if (analysis.ma.ma13 > analysis.ma.ma21) maScore++;
+            if (analysis.ma.ma21 > analysis.ma.ma34) maScore++;
+            if (analysis.ma.ma34 > analysis.ma.ma55) maScore++;
+            if (analysis.price > analysis.ma.ma144) maScore++;
+
+            score += maScore;
+            if (maScore >= 4) {
+                reasons.push(`🟢 均線多頭排列(${maScore}/5)`);
+            } else if (maScore >= 2) {
+                reasons.push(`🟡 均線部分多頭(${maScore}/5)`);
             }
-            if (analysis.price < analysis.ma.ma21) {
+
+            // === 3. 價格位置評分 (最高 3 分) ===
+            if (analysis.price > analysis.ma.ma5) {
                 score += 1;
-                reasons.push("價跌破MA21");
+                reasons.push("📈 價在MA5上");
             }
-
-            // 3. 建議買點
-            if (analysis.suggestion.includes("拉回買")) {
-                score += 2;
-                reasons.push("技術面拉回買");
-            } else if (analysis.suggestion.includes("守34")) {
+            if (analysis.price > analysis.ma.ma13) {
                 score += 1;
-                reasons.push("技術面守34");
+            }
+            if (analysis.price > analysis.ma.ma21) {
+                score += 1;
             }
 
-            // 4. 有進場價
+            // === 4. 趨勢強度評分 (最高 4 分) ===
+            if (analysis.bias.includes("主升段")) {
+                score += 4;
+                reasons.push("🚀 主升段強勢");
+            } else if (analysis.bias.includes("短多")) {
+                score += 3;
+                reasons.push("📊 短多啟動");
+            } else if (analysis.bias.includes("多頭回檔")) {
+                score += 2;
+                reasons.push("🔄 多頭回檔");
+            } else if (analysis.isBullMarket) {
+                score += 1;
+                reasons.push("✅ 多頭市場");
+            }
+
+            // === 5. 進場機會評分 (最高 3 分) ===
             if (analysis.entryPrice > 0) {
                 score += 1;
-                reasons.push("系統給予進場價");
+                reasons.push("💰 有進場價位");
+
+                // 計算潛在報酬
+                if (analysis.exitPrice > analysis.entryPrice) {
+                    const potentialReturn = ((analysis.exitPrice - analysis.entryPrice) / analysis.entryPrice * 100).toFixed(1);
+                    if (potentialReturn > 15) {
+                        score += 2;
+                        reasons.push(`💎 高報酬空間(${potentialReturn}%)`);
+                    } else if (potentialReturn > 8) {
+                        score += 1;
+                        reasons.push(`💵 中等報酬(${potentialReturn}%)`);
+                    }
+                }
             }
 
-            // 只保留評分 >= 3 的股票
-            if (score >= 3) {
+            // === 計算信心度和星級 ===
+            const confidence = Math.min(100, (score / maxScore * 100)).toFixed(0);
+            let stars = '';
+            if (score >= 15) stars = '⭐⭐⭐⭐⭐';
+            else if (score >= 12) stars = '⭐⭐⭐⭐';
+            else if (score >= 9) stars = '⭐⭐⭐';
+            else if (score >= 6) stars = '⭐⭐';
+            else if (score >= 3) stars = '⭐';
+
+            // === 風險評估 ===
+            let riskLevel = '中等';
+            if (!analysis.isBullMarket) {
+                riskLevel = '高';
+            } else if (analysis.kd.k > 80) {
+                riskLevel = '中高';
+            } else if (score >= 12) {
+                riskLevel = '中低';
+            }
+
+            // 只保留評分 >= 6 的股票 (提高門檻，篩選更優質標的)
+            if (score >= 6) {
                 results.push({
                     ...analysis,
                     score,
+                    maxScore,
+                    confidence,
+                    stars,
+                    riskLevel,
                     reasons
                 });
             }

@@ -336,7 +336,7 @@ function displayMultipleStocks(results, title) {
  * 顯示掃描結果
  */
 function displayScanResults(results) {
-    document.getElementById('multiStockTitle').textContent = `🎯 潛力股掃描結果 (前 ${results.length} 名)`;
+    document.getElementById('multiStockTitle').textContent = `🎯 AI 潛力股掃描結果 (前 ${results.length} 名)`;
 
     const table = document.getElementById('stockTable');
     table.innerHTML = `
@@ -345,24 +345,75 @@ function displayScanResults(results) {
                 <th>排名</th>
                 <th>代號</th>
                 <th>名稱</th>
-                <th>評分</th>
+                <th>AI評分</th>
+                <th>星級</th>
+                <th>信心度</th>
+                <th>風險</th>
                 <th>目前價</th>
                 <th>進場價</th>
                 <th>主要原因</th>
             </tr>
         </thead>
         <tbody>
-            ${results.map((stock, index) => `
+            ${results.map((stock, index) => {
+        // 根據評分設定顏色
+        let scoreColor = '#3b82f6'; // 預設藍色
+        if (stock.score >= 15) scoreColor = '#22c55e'; // 綠色
+        else if (stock.score >= 12) scoreColor = '#10b981'; // 淺綠
+        else if (stock.score >= 9) scoreColor = '#3b82f6'; // 藍色
+        else if (stock.score >= 6) scoreColor = '#6366f1'; // 紫色
+
+        // 根據風險設定顏色
+        let riskColor = '#6b7280'; // 預設灰色
+        let riskBg = 'rgba(107, 114, 128, 0.1)';
+        if (stock.riskLevel === '高') {
+            riskColor = '#ef4444';
+            riskBg = 'rgba(239, 68, 68, 0.1)';
+        } else if (stock.riskLevel === '中高') {
+            riskColor = '#f59e0b';
+            riskBg = 'rgba(245, 158, 11, 0.1)';
+        } else if (stock.riskLevel === '中低') {
+            riskColor = '#10b981';
+            riskBg = 'rgba(16, 185, 129, 0.1)';
+        }
+
+        return `
                 <tr>
-                    <td>${index + 1}</td>
+                    <td><strong>${index + 1}</strong></td>
                     <td>${stock.code}</td>
                     <td>${stock.name}</td>
-                    <td><strong>${stock.score}</strong></td>
+                    <td>
+                        <strong style="color: ${scoreColor}; font-size: 1.1em;">
+                            ${stock.score}/${stock.maxScore}
+                        </strong>
+                    </td>
+                    <td style="font-size: 1.1em;">${stock.stars}</td>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 5px;">
+                            <div style="width: 50px; height: 6px; background: rgba(59, 130, 246, 0.2); border-radius: 3px; overflow: hidden;">
+                                <div style="width: ${stock.confidence}%; height: 100%; background: ${scoreColor}; transition: width 0.3s;"></div>
+                            </div>
+                            <span style="font-size: 0.85em; color: ${scoreColor};">${stock.confidence}%</span>
+                        </div>
+                    </td>
+                    <td>
+                        <span style="
+                            padding: 2px 8px;
+                            border-radius: 4px;
+                            font-size: 0.85em;
+                            background: ${riskBg};
+                            color: ${riskColor};
+                            font-weight: 500;
+                        ">${stock.riskLevel}</span>
+                    </td>
                     <td>NT$ ${stock.price.toFixed(2)}</td>
                     <td>${stock.entryPrice > 0 ? 'NT$ ' + stock.entryPrice.toFixed(2) : '---'}</td>
-                    <td>${stock.reasons.slice(0, 2).join('、')}</td>
+                    <td style="font-size: 0.9em;">
+                        ${stock.reasons.slice(0, 3).join('<br>')}
+                    </td>
                 </tr>
-            `).join('')}
+                `;
+    }).join('')}
         </tbody>
     `;
 

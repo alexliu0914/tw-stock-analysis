@@ -109,17 +109,18 @@ function getSectorStocksById(sectorId) {
 }
 
 /**
- * 驗證股票代號是否存在
+ * 驗證股票代號格式（台股為 4 位數字）
  */
-function validateStockCode(code) {
-    return STOCK_NAMES.hasOwnProperty(code);
+function isValidStockCodeFormat(code) {
+    // 台股代號為 4 位數字
+    return /^\d{4}$/.test(code);
 }
 
 /**
  * 解析股票代號輸入（支援逗號、空格分隔）
  */
 function parseStockCodes(input) {
-    if (!input) return [];
+    if (!input) return { valid: [], invalid: [] };
 
     // 移除多餘空白，用逗號或空格分隔
     const codes = input
@@ -133,7 +134,8 @@ function parseStockCodes(input) {
     const invalidCodes = [];
 
     codes.forEach(code => {
-        if (validateStockCode(code)) {
+        // 只檢查格式是否正確（4 位數字），不檢查是否在 STOCK_NAMES 中
+        if (isValidStockCodeFormat(code)) {
             validCodes.push(code);
         } else {
             invalidCodes.push(code);

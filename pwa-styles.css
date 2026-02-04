@@ -1,0 +1,291 @@
+/* PWA Specific Styles */
+
+/* 安裝橫幅 */
+.install-banner {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(15, 23, 42, 0.95);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: 16px;
+    padding: 16px 20px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    z-index: 10000;
+    max-width: 90%;
+    width: 400px;
+    animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
+.install-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: white;
+}
+
+.install-icon {
+    font-size: 2em;
+    flex-shrink: 0;
+}
+
+.install-text {
+    flex: 1;
+}
+
+.install-text h3 {
+    margin: 0 0 4px 0;
+    font-size: 1em;
+    font-weight: 600;
+}
+
+.install-text p {
+    margin: 0;
+    font-size: 0.85em;
+    opacity: 0.8;
+}
+
+.install-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.install-actions .btn {
+    padding: 8px 16px;
+    font-size: 0.9em;
+    white-space: nowrap;
+}
+
+.btn-icon {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 1.2em;
+    cursor: pointer;
+    padding: 4px 8px;
+    transition: color 0.2s;
+}
+
+.btn-icon:hover {
+    color: white;
+}
+
+/* iOS 安裝橫幅 */
+.ios-install-banner {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    border-top: 2px solid rgba(59, 130, 246, 0.5);
+    padding: 16px 20px;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+    z-index: 10000;
+    animation: slideUpFromBottom 0.3s ease-out;
+}
+
+@keyframes slideUpFromBottom {
+    from {
+        transform: translateY(100%);
+    }
+
+    to {
+        transform: translateY(0);
+    }
+}
+
+.ios-install-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: white;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.ios-install-icon {
+    font-size: 2em;
+    flex-shrink: 0;
+}
+
+.ios-install-text {
+    flex: 1;
+}
+
+.ios-install-text h3 {
+    margin: 0 0 4px 0;
+    font-size: 1em;
+    font-weight: 600;
+}
+
+.ios-install-text p {
+    margin: 0;
+    font-size: 0.85em;
+    opacity: 0.9;
+}
+
+.share-icon {
+    display: inline-block;
+    background: rgba(59, 130, 246, 0.2);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: bold;
+    color: #3b82f6;
+}
+
+/* 更新通知 */
+.update-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: rgba(15, 23, 42, 0.95);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(34, 197, 94, 0.3);
+    border-radius: 12px;
+    padding: 16px 20px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    z-index: 10000;
+    max-width: 90%;
+    width: 350px;
+    animation: slideInRight 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.update-content {
+    color: white;
+}
+
+.update-content p {
+    margin: 0 0 12px 0;
+    font-size: 1em;
+    font-weight: 600;
+}
+
+.update-content .btn {
+    margin-right: 8px;
+    padding: 8px 16px;
+    font-size: 0.9em;
+}
+
+/* 感謝訊息 */
+.thank-you-message {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(15, 23, 42, 0.98);
+    backdrop-filter: blur(10px);
+    border: 2px solid rgba(34, 197, 94, 0.5);
+    border-radius: 16px;
+    padding: 32px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    z-index: 10001;
+    text-align: center;
+    animation: popIn 0.3s ease-out;
+}
+
+@keyframes popIn {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.8);
+    }
+
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+}
+
+.thank-you-content {
+    color: white;
+}
+
+.thank-you-content h3 {
+    margin: 0 0 8px 0;
+    font-size: 1.5em;
+    color: #22c55e;
+}
+
+.thank-you-content p {
+    margin: 0;
+    font-size: 1em;
+    opacity: 0.9;
+}
+
+/* 手機適配 */
+@media (max-width: 768px) {
+    .install-banner {
+        bottom: 10px;
+        width: calc(100% - 40px);
+        max-width: none;
+    }
+
+    .install-content {
+        flex-wrap: wrap;
+    }
+
+    .install-actions {
+        width: 100%;
+        justify-content: flex-end;
+        margin-top: 8px;
+    }
+
+    .update-notification {
+        top: 10px;
+        right: 10px;
+        left: 10px;
+        width: auto;
+    }
+
+    .thank-you-message {
+        width: calc(100% - 40px);
+        max-width: 400px;
+    }
+}
+
+/* Standalone 模式樣式調整 */
+@media (display-mode: standalone) {
+
+    /* 當在 standalone 模式下運行時的特殊樣式 */
+    .app-header {
+        padding-top: env(safe-area-inset-top, 20px);
+    }
+
+    .app-container {
+        padding-bottom: env(safe-area-inset-bottom, 20px);
+    }
+}
+
+/* iOS Safari standalone 模式 */
+@supports (-webkit-touch-callout: none) {
+    @media (display-mode: standalone) {
+        .app-header {
+            padding-top: max(env(safe-area-inset-top), 20px);
+        }
+    }
+}

@@ -1,47 +1,92 @@
-# Python 相關
+# ==================== Python 相關 ====================
 *.py
 *.pyc
 __pycache__/
 *.zip
+.venv/
+venv/
 
-# Firebase 相關（如果只用 GitHub Pages）
+# ==================== Firebase 相關 ====================
 .firebase/
 .firebaserc
 firebase.json
+
+# ==================== 部署腳本（本地使用）====================
 deploy.ps1
 test-local.ps1
 部署.bat
 
-# 臨時檔案
+# ==================== 後端 API（獨立專案）====================
+tw-stock-api/
+
+# ==================== public 目錄（GitHub Pages 不需要）====================
+public/
+
+# ==================== 測試檔案 ====================
+test_mobile.html
+test*.html
+
+# ==================== 臨時檔案 ====================
 *.tmp
 *.log
 .DS_Store
 Thumbs.db
 
-# 編輯器
+# ==================== 編輯器 ====================
 .vscode/
 .idea/
 *.swp
 *.swo
 
-# public 目錄（GitHub Pages 不需要）
-public/
+# ==================== 說明文檔（開發記錄，不需要 Push）====================
+# 保留 README.md，其他都排除
 
-# 可選的文檔（保留核心文檔即可）
+# API 相關說明
+API*.md
+CORS*.md
+
+# 部署相關說明
+*部署*.md
+*指南.md
+Firebase*.md
+GitHub部署修復.md
+快速部署.md
+
+# 功能說明
+圖表功能說明.md
+PWA*.md
+手機使用指南.md
+
+# 專案總結文檔
 完成項目總結.md
 專案完成報告.md
+專案總結.md
 當前狀態.md
+v*.md
+
+# 快速開始文檔
 快速開始.md
 立即開始.md
+*開始.md
+
+# 修復記錄
+*修復.md
 緊急修復.md
-部署成功.md
-部署指令.md
-部署準備完成.md
-手機使用指南.md
-CORS修復說明.md
-CORS_解決方案.md
-安裝Node.js和Firebase.md
-Firebase部署指南.md
-test_mobile.html
-API重試機制修復.md
-API請求節流說明.md
+自定義板塊Bug修復.md
+
+# 其他說明
+安裝*.md
+*說明.md
+*總結.md
+*清單.md
+*報告.md
+*準備*.md
+*成功.md
+*優化*.md
+*整合*.md
+*規劃*.md
+Git推送檔案清單.md
+後端*.md
+
+# 但保留 README.md（重要！）
+!README.md
