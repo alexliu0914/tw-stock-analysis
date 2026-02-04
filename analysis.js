@@ -334,6 +334,9 @@ async function analyzeStock(stockCode) {
         // 策略分析
         const strategy = analyzeStrategy(analysis, highs, closes);
 
+        // ==================== AI 評分系統（單一股票） ====================
+        const aiScore = calculateAIScore(analysis, strategy);
+
         // 準備圖表數據 (最近30天)
         const chartDays = Math.min(30, validData.length);
         const chartStartIndex = validData.length - chartDays;
@@ -357,6 +360,7 @@ async function analyzeStock(stockCode) {
         return {
             ...analysis,
             ...strategy,
+            ...aiScore,  // 加入 AI 評分
             chartData
         };
 
@@ -461,6 +465,138 @@ function analyzeStrategy(analysis, highs, closes) {
         priceType,
         kdTrend,
         isBullMarket
+    };
+}
+
+/**
+ * 計算 AI 評分（用於單一股票分析）
+ */
+function calculateAIScore(analysis, strategy) {
+    let score = 0;
+    const reasons = [];
+    const maxScore = 20;
+
+    // === 1. KD 指標評分 (最高 5 分) ===
+    if (analysis.kd.k < 20) {
+        score += 3;
+        reasons.push(`🔵 KD超賣區(K=${analysis.kd.k.toFixed(1)})`);
+    } else if (analysis.kd.k < 30) {
+        score += 2;
+        reasons.push(`🔵 KD偏低(K=${analysis.kd.k.toFixed(1)})`);
+    }
+
+    // KD 黃金交叉
+    if (strategy.kdTrend.includes("黃金交叉")) {
+        score += 2;
+        reasons.push("⭐ KD黃金交叉");
+    }
+
+    // === 2. 均線排列評分 (最高 5 分) ===
+    let maScore = 0;
+    if (analysis.ma.ma5 > analysis.ma.ma13) maScore++;
+    if (analysis.ma.ma13 > analysis.ma.ma21) maScore++;
+    if (analysis.ma.ma21 > analysis.ma.ma34) maScore++;
+    if (analysis.ma.ma34 > analysis.ma.ma55) maScore++;
+    if (analysis.price > analysis.ma.ma144) maScore++;
+
+    score += maScore;
+    if (maScore >= 4) {
+        reasons.push(`🟢 均線多頭排列(${maScore}/5)`);
+    } else if (maScore >= 2) {
+        reasons.push(`🟡 均線部分多頭(${maScore}/5)`);
+    } else if (maScore === 0) {
+        reasons.push(`🔴 均線空頭排列`);
+    }
+
+    // === 3. 價格位置評分 (最高 3 分) ===
+    let priceScore = 0;
+    if (analysis.price > analysis.ma.ma5) {
+        priceScore++;
+        reasons.push("📈 價在MA5上");
+    }
+    if (analysis.price > analysis.ma.ma13) priceScore++;
+    if (analysis.price > analysis.ma.ma21) priceScore++;
+    score += priceScore;
+
+    // === 4. 趨勢強度評分 (最高 4 分) ===
+    if (strategy.bias.includes("主升段")) {
+        score += 4;
+        reasons.push("🚀 主升段強勢");
+    } else if (strategy.bias.includes("短多")) {
+        score += 3;
+        reasons.push("📊 短多啟動");
+    } else if (strategy.bias.includes("多頭回檔")) {
+        score += 2;
+        reasons.push("🔄 多頭回檔");
+    } else if (strategy.isBullMarket) {
+        score += 1;
+        reasons.push("✅ 多頭市場");
+    } else {
+        reasons.push("⚠️ 空頭市場");
+    }
+
+    // === 5. 進場機會評分 (最高 3 分) ===
+    if (strategy.entryPrice > 0) {
+        score += 1;
+        reasons.push("💰 有進場價位");
+
+        // 計算潛在報酬
+        if (strategy.exitPrice > strategy.entryPrice) {
+            const potentialReturn = ((strategy.exitPrice - strategy.entryPrice) / strategy.entryPrice * 100).toFixed(1);
+            if (potentialReturn > 15) {
+                score += 2;
+                reasons.push(`💎 高報酬空間(${potentialReturn}%)`);
+            } else if (potentialReturn > 8) {
+                score += 1;
+                reasons.push(`💵 中等報酬(${potentialReturn}%)`);
+            } else if (potentialReturn > 0) {
+                reasons.push(`💰 報酬空間(${potentialReturn}%)`);
+            }
+        }
+    }
+
+    // === 計算信心度和星級 ===
+    const confidence = Math.min(100, (score / maxScore * 100)).toFixed(0);
+    let stars = '';
+    let rating = '';
+    if (score >= 15) {
+        stars = '⭐⭐⭐⭐⭐';
+        rating = '強烈推薦';
+    } else if (score >= 12) {
+        stars = '⭐⭐⭐⭐';
+        rating = '推薦';
+    } else if (score >= 9) {
+        stars = '⭐⭐⭐';
+        rating = '可考慮';
+    } else if (score >= 6) {
+        stars = '⭐⭐';
+        rating = '觀察';
+    } else if (score >= 3) {
+        stars = '⭐';
+        rating = '謹慎';
+    } else {
+        stars = '';
+        rating = '不建議';
+    }
+
+    // === 風險評估 ===
+    let riskLevel = '中等';
+    if (!strategy.isBullMarket) {
+        riskLevel = '高';
+    } else if (analysis.kd.k > 80) {
+        riskLevel = '中高';
+    } else if (score >= 12) {
+        riskLevel = '中低';
+    }
+
+    return {
+        aiScore: score,
+        aiMaxScore: maxScore,
+        aiConfidence: confidence,
+        aiStars: stars,
+        aiRating: rating,
+        aiRiskLevel: riskLevel,
+        aiReasons: reasons
     };
 }
 

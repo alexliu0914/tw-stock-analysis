@@ -279,6 +279,131 @@ function displaySingleStock(data) {
         </div>
     `;
 
+    // === 新增：AI 評分卡片 ===
+    if (data.aiScore !== undefined) {
+        // 根據評分設定顏色
+        let scoreColor = '#3b82f6';
+        if (data.aiScore >= 15) scoreColor = '#22c55e';
+        else if (data.aiScore >= 12) scoreColor = '#10b981';
+        else if (data.aiScore >= 9) scoreColor = '#3b82f6';
+        else if (data.aiScore >= 6) scoreColor = '#6366f1';
+
+        // 根據風險設定顏色
+        let riskColor = '#6b7280';
+        let riskBg = 'rgba(107, 114, 128, 0.1)';
+        if (data.aiRiskLevel === '高') {
+            riskColor = '#ef4444';
+            riskBg = 'rgba(239, 68, 68, 0.1)';
+        } else if (data.aiRiskLevel === '中高') {
+            riskColor = '#f59e0b';
+            riskBg = 'rgba(245, 158, 11, 0.1)';
+        } else if (data.aiRiskLevel === '中低') {
+            riskColor = '#10b981';
+            riskBg = 'rgba(16, 185, 129, 0.1)';
+        }
+
+        document.getElementById('analysisContent').innerHTML += `
+            <div class="ai-score-card" style="
+                margin-top: 20px;
+                padding: 20px;
+                background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(99, 102, 241, 0.1) 100%);
+                border-radius: 12px;
+                border: 1px solid rgba(59, 130, 246, 0.2);
+            ">
+                <h3 style="margin: 0 0 15px 0; color: ${scoreColor}; display: flex; align-items: center; gap: 8px;">
+                    🤖 AI 綜合評分
+                    <span style="font-size: 0.8em; color: var(--text-secondary);">(v1.1)</span>
+                </h3>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 15px;">
+                    <!-- 評分 -->
+                    <div style="text-align: center;">
+                        <div style="font-size: 0.85em; color: var(--text-secondary); margin-bottom: 5px;">評分</div>
+                        <div style="font-size: 2em; font-weight: bold; color: ${scoreColor};">
+                            ${data.aiScore}
+                        </div>
+                        <div style="font-size: 0.75em; color: var(--text-secondary);">/ ${data.aiMaxScore}</div>
+                    </div>
+                    
+                    <!-- 星級 -->
+                    <div style="text-align: center;">
+                        <div style="font-size: 0.85em; color: var(--text-secondary); margin-bottom: 5px;">星級</div>
+                        <div style="font-size: 1.5em; margin: 5px 0;">
+                            ${data.aiStars || '無'}
+                        </div>
+                        <div style="font-size: 0.85em; color: ${scoreColor}; font-weight: 500;">
+                            ${data.aiRating}
+                        </div>
+                    </div>
+                    
+                    <!-- 信心度 -->
+                    <div style="text-align: center;">
+                        <div style="font-size: 0.85em; color: var(--text-secondary); margin-bottom: 5px;">信心度</div>
+                        <div style="margin: 10px auto; width: 80px;">
+                            <div style="width: 100%; height: 8px; background: rgba(59, 130, 246, 0.2); border-radius: 4px; overflow: hidden;">
+                                <div style="width: ${data.aiConfidence}%; height: 100%; background: ${scoreColor}; transition: width 0.3s;"></div>
+                            </div>
+                        </div>
+                        <div style="font-size: 1.2em; font-weight: bold; color: ${scoreColor};">
+                            ${data.aiConfidence}%
+                        </div>
+                    </div>
+                    
+                    <!-- 風險 -->
+                    <div style="text-align: center;">
+                        <div style="font-size: 0.85em; color: var(--text-secondary); margin-bottom: 5px;">風險等級</div>
+                        <div style="margin: 10px 0;">
+                            <span style="
+                                padding: 6px 16px;
+                                border-radius: 6px;
+                                font-size: 1em;
+                                background: ${riskBg};
+                                color: ${riskColor};
+                                font-weight: 600;
+                                display: inline-block;
+                            ">${data.aiRiskLevel}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 評分原因 -->
+                <div style="
+                    margin-top: 15px;
+                    padding-top: 15px;
+                    border-top: 1px solid rgba(255, 255, 255, 0.1);
+                ">
+                    <div style="font-size: 0.9em; font-weight: 600; margin-bottom: 10px; color: var(--text-secondary);">
+                        📋 評分依據：
+                    </div>
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                        ${data.aiReasons.map(reason => `
+                            <span style="
+                                padding: 4px 10px;
+                                background: rgba(255, 255, 255, 0.05);
+                                border-radius: 6px;
+                                font-size: 0.85em;
+                                border: 1px solid rgba(255, 255, 255, 0.1);
+                            ">${reason}</span>
+                        `).join('')}
+                    </div>
+                </div>
+                
+                <!-- 說明 -->
+                <div style="
+                    margin-top: 15px;
+                    padding: 10px;
+                    background: rgba(0, 0, 0, 0.2);
+                    border-radius: 6px;
+                    font-size: 0.8em;
+                    color: var(--text-secondary);
+                    line-height: 1.5;
+                ">
+                    💡 <strong>說明：</strong>AI 評分綜合考量 KD 指標、均線排列、價格位置、趨勢強度和進場機會等多個維度，提供客觀的技術面評估。評分僅供參考，投資前請做好風險控管。
+                </div>
+            </div>
+        `;
+    }
+
     // 顯示結果
     singleStockResult.style.display = 'block';
     multiStockResult.style.display = 'none';
