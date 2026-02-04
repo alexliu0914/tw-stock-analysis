@@ -118,7 +118,12 @@ const SECTORS = {
 
 // 獲取股票名稱
 function getStockName(code) {
-    return STOCK_NAMES[code] || code;
+    // 如果在預定義列表中，返回名稱
+    if (STOCK_NAMES[code]) {
+        return STOCK_NAMES[code];
+    }
+    // 否則返回 '-'（表示未知）
+    return '-';
 }
 
 // 獲取所有板塊列表

@@ -221,6 +221,7 @@ async function fetchStockDataCore(stockCode) {
 
     const result = data.chart.result[0];
     const quote = result.indicators.quote[0];
+    const meta = result.meta || {};
 
     return {
         timestamps: result.timestamp,
@@ -228,7 +229,9 @@ async function fetchStockDataCore(stockCode) {
         highs: quote.high,
         lows: quote.low,
         closes: quote.close,
-        volumes: quote.volume
+        volumes: quote.volume,
+        // 從 API 提取公司名稱（如果有的話）
+        companyName: meta.longName || meta.shortName || null
     };
 }
 
@@ -295,7 +298,9 @@ async function analyzeStock(stockCode) {
         const latestIndex = validData.length - 1;
 
         const currentPrice = latest.close;
-        const stockName = getStockName(stockCode);
+
+        // 優先使用 API 返回的公司名稱，否則使用預定義列表，最後使用 '-'
+        const stockName = stockData.companyName || getStockName(stockCode);
 
         // 分析結果
         const analysis = {
