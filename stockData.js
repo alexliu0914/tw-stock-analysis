@@ -44,7 +44,8 @@ const STOCK_NAMES = {
     '8054': '安國', '8059': '凱碩', '8088': '品安', '8110': '華東', '8111': '立碁',
     '8112': '至上', '8150': '南茂', '8155': '博智', '8163': '達方', '8183': '精星',
     '8215': '明基材', '8271': '宇瞻', '8277': '商丞', '8299': '群聯', '8358': '金居',
-    '8936': '國統', '9105': '泰金寶-DR', '9905': '大華'
+    '8936': '國統', '9105': '泰金寶-DR', '9905': '大華', '5439': '高僑',
+    '8069': '元太', '6488': '環球晶', '5347': '世界', '3293': '鈊象'
 };
 
 // 板塊定義
@@ -148,26 +149,37 @@ const DynamicNameManager = {
         const lastFetch = localStorage.getItem(this.CACHE_KEY + '_time');
         if (lastFetch && (Date.now() - parseInt(lastFetch)) < 7 * 24 * 60 * 60 * 1000) return;
 
-        console.log('🔄 正在同步全台股名稱列表...');
+        console.log('🔄 正在同步全台股(上市+上櫃)名稱列表...');
         try {
-            const proxies = ['https://api.allorigins.win/raw?url='];
+            const proxy = 'https://api.allorigins.win/raw?url=';
             const twseUrl = encodeURIComponent('https://openapi.twse.com.tw/v1/exchangeReport/BWIBBU_ALL');
+            const tpexUrl = encodeURIComponent('https://www.tpex.org.tw/openapi/v1/t187ap03_ALL');
 
-            const response = await fetch(proxies[0] + twseUrl);
-            const data = await response.json();
+            const mapping = this.getLocalNames() || {};
 
-            if (Array.isArray(data)) {
-                const mapping = this.getLocalNames() || {};
-                data.forEach(item => {
-                    if (item.Code && item.Name) mapping[item.Code] = item.Name;
-                });
+            // 抓取上市 (TWSE)
+            try {
+                const res1 = await fetch(proxy + twseUrl);
+                const data1 = await res1.json();
+                if (Array.isArray(data1)) {
+                    data1.forEach(item => { if (item.Code && item.Name) mapping[item.Code] = item.Name; });
+                }
+            } catch (e) { console.warn('上市名稱同步失敗'); }
 
-                localStorage.setItem(this.CACHE_KEY, JSON.stringify(mapping));
-                localStorage.setItem(this.CACHE_KEY + '_time', Date.now().toString());
-                console.log(`✅ 已同步 ${data.length} 筆台股名稱`);
-            }
+            // 抓取上櫃 (TPEX)
+            try {
+                const res2 = await fetch(proxy + tpexUrl);
+                const data2 = await res2.json();
+                if (Array.isArray(data2)) {
+                    data2.forEach(item => { if (item.Code && item.Name) mapping[item.Code] = item.Name; });
+                }
+            } catch (e) { console.warn('上櫃名稱同步失敗'); }
+
+            localStorage.setItem(this.CACHE_KEY, JSON.stringify(mapping));
+            localStorage.setItem(this.CACHE_KEY + '_time', Date.now().toString());
+            console.log(`✅ 已完成 ${Object.keys(mapping).length} 筆台股名稱同步`);
         } catch (e) {
-            console.warn('無法自動同步名稱列表:', e);
+            console.warn('全台股同步發生錯誤:', e);
         }
     }
 };
