@@ -165,6 +165,7 @@ async function fetchStockDataCore(stockCode) {
             const data = result.data;
             const chartResult = data.chart.result[0];
             const quote = chartResult.indicators.quote[0];
+            const meta = chartResult.meta || {};
 
             console.log(`[${stockCode}] ✅ 後端 API 成功${result.cached ? '（快取）' : ''}`);
 
@@ -174,7 +175,8 @@ async function fetchStockDataCore(stockCode) {
                 highs: quote.high,
                 lows: quote.low,
                 closes: quote.close,
-                volumes: quote.volume
+                volumes: quote.volume,
+                companyName: meta.longName || meta.shortName || null
             };
         } catch (error) {
             console.warn(`[${stockCode}] ⚠️ 後端 API 失敗，切換到 CORS 代理:`, error.message);
@@ -304,11 +306,21 @@ async function fetchStockData(stockCode) {
 }
 
 /**
+ * 清理股票名稱
+ */
+function cleanStockName(name, code) {
+    if (!name) return null;
+    let clean = name.replace(/\s*\(.*\)/, '').replace(/\.TW.*/, '').replace(/\.TWO.*/, '').trim();
+    if (clean === code) return null;
+    return clean;
+}
+
+/**
  * 分析單一股票
  */
 async function analyzeStock(stockCode) {
     try {
-        // 獲取歷史數據（fetchStockData 內部已包含重試機制）
+        // 獲取歷史數據
         const stockData = await fetchStockData(stockCode);
 
         if (!stockData.closes || stockData.closes.length < 144) {
@@ -349,8 +361,9 @@ async function analyzeStock(stockCode) {
 
         const currentPrice = latest.close;
 
-        // 優先使用 API 返回的公司名稱，否則使用預定義列表，最後使用 '-'
-        const stockName = stockData.companyName || getStockName(stockCode);
+        // 優先使用 API 返回的公司名稱 (經清理)，否則使用預定義列表，最後使用 '-'
+        const cleanedApiName = cleanStockName(stockData.companyName, stockCode);
+        const stockName = cleanedApiName || getStockName(stockCode);
 
         // 分析結果
         const analysis = {

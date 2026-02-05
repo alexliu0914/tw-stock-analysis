@@ -1,7 +1,7 @@
 // Service Worker for Taiwan Stock Analysis PWA
-// Version: 1.0.3
+// Version: 1.0.4
 
-const CACHE_NAME = 'tw-stock-v1.0.3';
+const CACHE_NAME = 'tw-stock-v1.0.4';
 const RUNTIME_CACHE = 'tw-stock-runtime';
 
 // 需要快取的核心檔案

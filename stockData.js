@@ -116,15 +116,61 @@ const SECTORS = {
     }
 };
 
-// 獲取股票名稱
+// 獲取股票名稱 (增強版)
 function getStockName(code) {
-    // 如果在預定義列表中，返回名稱
-    if (STOCK_NAMES[code]) {
-        return STOCK_NAMES[code];
-    }
-    // 否則返回 '-'（表示未知）
+    // 1. 優先從預定義字典找 (最快)
+    if (STOCK_NAMES[code]) return STOCK_NAMES[code];
+
+    // 2. 從本地快取的動態清單找
+    const dynamicNames = DynamicNameManager.getLocalNames();
+    if (dynamicNames && dynamicNames[code]) return dynamicNames[code];
+
+    // 3. 如果都沒有，觸發非同步抓取 (下次使用就會有)
+    DynamicNameManager.fetchFullList();
+
     return '-';
 }
+
+/**
+ * 動態名稱管理器
+ * 負責從 TWSE/OTC 下載完整的代號名稱對照表
+ */
+const DynamicNameManager = {
+    CACHE_KEY: 'tw_stock_names_full',
+
+    getLocalNames() {
+        const data = localStorage.getItem(this.CACHE_KEY);
+        if (!data) return null;
+        try { return JSON.parse(data); } catch (e) { return null; }
+    },
+
+    async fetchFullList() {
+        const lastFetch = localStorage.getItem(this.CACHE_KEY + '_time');
+        if (lastFetch && (Date.now() - parseInt(lastFetch)) < 7 * 24 * 60 * 60 * 1000) return;
+
+        console.log('🔄 正在同步全台股名稱列表...');
+        try {
+            const proxies = ['https://api.allorigins.win/raw?url='];
+            const twseUrl = encodeURIComponent('https://openapi.twse.com.tw/v1/exchangeReport/BWIBBU_ALL');
+
+            const response = await fetch(proxies[0] + twseUrl);
+            const data = await response.json();
+
+            if (Array.isArray(data)) {
+                const mapping = this.getLocalNames() || {};
+                data.forEach(item => {
+                    if (item.Code && item.Name) mapping[item.Code] = item.Name;
+                });
+
+                localStorage.setItem(this.CACHE_KEY, JSON.stringify(mapping));
+                localStorage.setItem(this.CACHE_KEY + '_time', Date.now().toString());
+                console.log(`✅ 已同步 ${data.length} 筆台股名稱`);
+            }
+        } catch (e) {
+            console.warn('無法自動同步名稱列表:', e);
+        }
+    }
+};
 
 // 獲取所有板塊列表
 function getSectorList() {
