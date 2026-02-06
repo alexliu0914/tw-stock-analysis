@@ -361,9 +361,17 @@ async function analyzeStock(stockCode) {
 
         const currentPrice = latest.close;
 
-        // 優先使用 API 返回的公司名稱 (經清理)，否則使用預定義列表，最後使用 '-'
-        const cleanedApiName = cleanStockName(stockData.companyName, stockCode);
-        const stockName = cleanedApiName || getStockName(stockCode);
+        // 名稱獲取策略：中文優先
+        // 1. 先查中文對照表 (本地字典 + 動態同步)
+        let stockName = getStockName(stockCode);
+
+        // 2. 如果查不到中文 (返回 '-')，才使用 API 回傳的名稱
+        if (stockName === '-') {
+            const cleanedApiName = cleanStockName(stockData.companyName, stockCode);
+            if (cleanedApiName) {
+                stockName = cleanedApiName;
+            }
+        }
 
         // 分析結果
         const analysis = {
