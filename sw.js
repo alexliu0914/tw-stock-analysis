@@ -1,7 +1,7 @@
 // Service Worker for Taiwan Stock Analysis PWA
-// Version: 1.0.6
+// Version: 1.0.7
 
-const CACHE_NAME = 'tw-stock-v1.0.6';
+const CACHE_NAME = 'tw-stock-v1.0.7';
 const RUNTIME_CACHE = 'tw-stock-runtime';
 
 // 需要快取的核心檔案
@@ -200,7 +200,12 @@ async function networkFirst(request) {
             return cached;
         }
 
-        throw error;
+        // 如果都失敗，為了不讓 Console 噴紅字，我們可以返回一個 404 Response
+        // 或者直接讓調用端的 fetch catch 到 (但目前上面的 try-catch 外層沒有，所以我們要回傳一個錯誤 Response)
+        return new Response(JSON.stringify({ error: "Network and Cache failed" }), {
+            status: 408, // Request Timeout 或自定義狀態
+            headers: { 'Content-Type': 'application/json' }
+        });
     }
 }
 

@@ -187,11 +187,11 @@ async function fetchStockDataCore(stockCode) {
     // 備用方案：使用 CORS 代理
     console.log(`[${stockCode}] 🔄 使用 CORS 代理...`);
 
-    // CORS 代理列表（按優先順序）
+    // CORS 代理列表（按優先順序，移除已失效的）
     const corsProxies = [
-        'https://api.allorigins.win/raw?url=',
-        'https://corsproxy.io/?',
-        'https://cors-anywhere.herokuapp.com/',
+        'https://api.allorigins.win/raw?url=',      // 穩定
+        'https://api.codetabs.com/v1/proxy?quest=', // 新增：CodeTabs (備用)
+        'https://corsproxy.io/?',                   // 有時會擋，放後面
         '' // 最後嘗試直接訪問
     ];
 
