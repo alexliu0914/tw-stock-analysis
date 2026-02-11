@@ -265,6 +265,21 @@ function displaySingleStock(data) {
             <div class="analysis-label">操作建議</div>
             <div class="analysis-value">${data.suggestion}</div>
         </div>
+        
+        <!-- 新增：基本面資訊 -->
+        <div class="analysis-item" style="border-top: 1px solid rgba(255,255,255,0.1); margin-top: 10px; padding-top: 10px;">
+            <div class="analysis-label">本益比 (P/E)</div>
+            <div class="analysis-value" style="color: ${data.valuationColor || 'inherit'}">
+                ${data.pe !== null ? data.pe.toFixed(2) : '---'} 
+                <span style="font-size: 0.85em; opacity: 0.8;">(${data.valuation || '未知'})</span>
+            </div>
+        </div>
+        <div class="analysis-item">
+            <div class="analysis-label">每股盈餘 (EPS)</div>
+            <div class="analysis-value">${data.eps !== null ? data.eps.toFixed(2) : '---'} 元</div>
+        </div>
+        <!-- 基本面資訊結束 -->
+
         <div class="analysis-item">
             <div class="analysis-label">建議進場</div>
             <div class="analysis-value">

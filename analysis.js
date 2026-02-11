@@ -169,6 +169,23 @@ async function fetchStockDataCore(stockCode) {
 
             console.log(`[${stockCode}] ✅ 後端 API 成功${result.cached ? '（快取）' : ''}`);
 
+            // 優先使用後端回傳的基本面數據
+            // 注意：後端將 fundamentals 放在 chart.result[0] 中
+            let fundamentals = chartResult.fundamentals || { pe: null, eps: null };
+
+            // 如果後端沒有數據 (舊版 API)，嘗試前端補抓
+            if ((!fundamentals.pe && !fundamentals.eps)) {
+                try {
+                    console.log(`[${stockCode}] 後端無基本面數據，嘗試前端獲取...`);
+                    const clientFundamentals = await fetchFundamentalData(stockCode);
+                    if (clientFundamentals.pe || clientFundamentals.eps) {
+                        fundamentals = clientFundamentals;
+                    }
+                } catch (e) {
+                    console.warn(`[${stockCode}] 無法獲取基本面數據:`, e);
+                }
+            }
+
             return {
                 timestamps: chartResult.timestamp,
                 opens: quote.open,
@@ -176,7 +193,8 @@ async function fetchStockDataCore(stockCode) {
                 lows: quote.low,
                 closes: quote.close,
                 volumes: quote.volume,
-                companyName: meta.longName || meta.shortName || null
+                companyName: meta.longName || meta.shortName || null,
+                fundamentals: fundamentals
             };
         } catch (error) {
             console.warn(`[${stockCode}] ⚠️ 後端 API 失敗，切換到 CORS 代理:`, error.message);
@@ -274,6 +292,14 @@ async function fetchStockDataCore(stockCode) {
     const quote = result.indicators.quote[0];
     const meta = result.meta || {};
 
+    // 嘗試獲取基本面數據 (EPS, PE)
+    let fundamentals = { pe: null, eps: null };
+    try {
+        fundamentals = await fetchFundamentalData(stockCode);
+    } catch (e) {
+        console.warn(`[${stockCode}] 無法獲取基本面數據:`, e);
+    }
+
     return {
         timestamps: result.timestamp,
         opens: quote.open,
@@ -282,7 +308,60 @@ async function fetchStockDataCore(stockCode) {
         closes: quote.close,
         volumes: quote.volume,
         // 從 API 提取公司名稱（如果有的話）
-        companyName: meta.longName || meta.shortName || null
+        companyName: meta.longName || meta.shortName || null,
+        // 基本面數據
+        fundamentals: fundamentals
+    };
+}
+
+/**
+ * 獲取基本面數據 (EPS, PE)
+ */
+async function fetchFundamentalData(stockCode) {
+    const corsProxies = [
+        'https://api.allorigins.win/raw?url=',
+        'https://api.codetabs.com/v1/proxy?quest=',
+        'https://corsproxy.io/?',
+        ''
+    ];
+
+    // 輔助函數：嘗試使用代理獲取
+    const tryFetch = async (ticker) => {
+        const baseUrl = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${ticker}?modules=summaryDetail,defaultKeyStatistics`;
+
+        for (const proxy of corsProxies) {
+            try {
+                const url = proxy ? `${proxy}${encodeURIComponent(baseUrl)}` : baseUrl;
+                const response = await fetch(url);
+                if (!response.ok) continue;
+
+                const data = await response.json();
+                if (data.quoteSummary && data.quoteSummary.result) {
+                    return data.quoteSummary.result[0];
+                }
+            } catch (e) { continue; }
+        }
+        return null;
+    };
+
+    // 先試上市 .TW，再試上櫃 .TWO
+    let data = await tryFetch(`${stockCode}.TW`);
+    if (!data) {
+        data = await tryFetch(`${stockCode}.TWO`);
+    }
+
+    if (!data) return { pe: null, eps: null };
+
+    const summaryDetail = data.summaryDetail || {};
+    const defaultKeyStatistics = data.defaultKeyStatistics || {};
+
+    // 優先使用 trailingPE，如果沒有則嘗試計算 (如果價格和EPS都有)
+    let pe = summaryDetail.trailingPE ? summaryDetail.trailingPE.raw : null;
+    let eps = defaultKeyStatistics.trailingEps ? defaultKeyStatistics.trailingEps.raw : null;
+
+    return {
+        pe: pe !== null ? parseFloat(pe) : null,
+        eps: eps !== null ? parseFloat(eps) : null
     };
 }
 
@@ -401,6 +480,41 @@ async function analyzeStock(stockCode) {
                 d: kd.d[latestIndex - 1]
             }
         };
+
+        // 基本面分析 (EPS, PE, 估值)
+        const fundamentals = stockData.fundamentals || { pe: null, eps: null };
+        let pe = fundamentals.pe;
+        let eps = fundamentals.eps;
+
+        // 如果只有 EPS 沒有 PE，且有股價，嘗試計算 PE
+        if (pe === null && eps !== null && eps !== 0 && analysis.price) {
+            pe = analysis.price / eps;
+        }
+
+        // 判斷估值狀態
+        let valuation = "未知";
+        let valuationColor = "var(--text-secondary)";
+
+        if (pe !== null) {
+            if (pe < 0) {
+                valuation = "虧損中";
+                valuationColor = "var(--danger-color)";
+            } else if (pe < 12) {
+                valuation = "便宜價 (低估)";
+                valuationColor = "var(--success-color)";
+            } else if (pe <= 20) {
+                valuation = "合理價";
+                valuationColor = "#fbbf24"; // Amber/Yellow
+            } else {
+                valuation = "昂貴價 (偏高)";
+                valuationColor = "var(--danger-color)";
+            }
+        }
+
+        analysis.eps = eps;
+        analysis.pe = pe;
+        analysis.valuation = valuation;
+        analysis.valuationColor = valuationColor;
 
         // 策略分析
         const strategy = analyzeStrategy(analysis, highs, closes);
